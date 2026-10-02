@@ -63,19 +63,19 @@ fi
 
 # ---------- Compilação ----------
 echo ""
-echo "→ Compilando libldwrapper.so..."
+echo "→ Compilando libLdWrapper.so..."
 $CLANG \
     -fPIC -pie -O2 \
     -Wl,-dynamic-linker,/system/bin/linker64 \
-    -o libldwrapper.so \
+    -o libLdWrapper.so \
     main.cpp
 
 # ---------- Resultado ----------
 echo ""
 echo "✓ Compilado com sucesso!"
 echo ""
-file libldwrapper.so
-ls -lh libldwrapper.so
+file libLdWrapper.so
+ls -lh libLdWrapper.so
 echo ""
 echo "Próximo passo:"
-echo "  cp libldwrapper.so <seu-projeto>/jniLibs/arm64-v8a/"
+echo "  cp libLdWrapper.so<seu-projeto>/jniLibs/arm64-v8a/"
