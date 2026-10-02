@@ -1,6 +1,4 @@
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Platform](https://img.shields.io/badge/platform-Android-green.svg)
-![Language](https://img.shields.io/badge/language-C%2B%2B-blue.svg)
+
 https://img.shields.io/badge/license-MIT-blue.svg https://img.shields.io/badge/platform-Android-green.svg https://img.shields.io/badge/language-C%2B%2B-blue.svg
 # ldwrapper
 
