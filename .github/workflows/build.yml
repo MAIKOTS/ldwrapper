@@ -17,7 +17,7 @@ jobs:
         run: |
           echo "ANDROID_NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> $GITHUB_ENV
 
-      - name: Build libldwrapper.so
+      - name: Build libLdWrapper.so
         run: |
           chmod +x build.sh
           ./build.sh
@@ -25,5 +25,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: libldwrapper
-          path: libldwrapper.so
+          name: libLdWrapper
+          path: libLdWrapper.so
