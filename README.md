@@ -87,46 +87,16 @@ Ou simplesmente:
 ./build.sh
 ```
 
-Uso
+## Compatibilidade
 
-1. Coloque libldwrapper.so em jniLibs/arm64-v8a/ do seu projeto
-2. Renomeie o LLD real (ld.lld) para libldreal.so e coloque na mesma pasta
-3. No código Java, invoque:
+• ✅ Android 5.0+ (API 21) •
+• ✅ ARM64 (aarch64-linux-android) •
+• ✅ ARM32 (armv7a-linux-androideabi) •
+• ✅ x86, x86_64 •
 
-```java
-File linker = new File(nativeDir, "libldwrapper.so");
-
-List<String> cmd = new ArrayList<>();
-cmd.add(clang);
-cmd.add("-fuse-ld=" + linker.getAbsolutePath());
-// ... resto dos argumentos
-```
-
-Por que não usar /system/bin/linker64 diretamente?
-
-Você pode, mas precisa que o binário alvo tenha argv[0] correto — o que exige uma camada extra de manipulação que o linker64 não fornece de forma limpa. Este wrapper faz isso de forma explícita e portável.
-
-Flags de debug
-
-Defina a variável de ambiente LDWRAPPER_VERBOSE=1 para ver o que o wrapper está fazendo:
-
-```bash
-LDWRAPPER_VERBOSE=1 ./libldwrapper.so --version
-```
-
-Compatibilidade
-
-· ✅ Android 5.0+ (API 21)
-· ✅ ARM64 (aarch64-linux-android)
-· ✅ ARM32 (armv7a-linux-androideabi)
-· ✅ x86, x86_64
-
-```
-
----
 ## Uso rápido (Java)
 
-```java
+java
 String nativeDir = ctx.getApplicationInfo().nativeLibraryDir;
 
 List<String> cmd = Arrays.asList(
@@ -142,10 +112,172 @@ ProcessBuilder pb = new ProcessBuilder(cmd);
 pb.environment().put("LD_LIBRARY_PATH", nativeDir);
 Process p = pb.start();
 int exit = p.waitFor();
-```
+##
 
 Requisitos:
 
 1. `libldwrapper.so` e `libldreal.so` em `jniLibs/arm64-v8a/`
 2. Renomear `ld.lld` do NDK para `libldreal.so` antes de copiar
 3. Definir `LD_LIBRARY_PATH` para `nativeLibraryDir`
+
+## Como usar em Java/Kotlin
+
+### 1. Colocar os arquivos no projeto
+
+Copie os dois binários para `jniLibs/arm64-v8a/` do seu projeto:
+
+```
+app/src/main/jniLibs/arm64-v8a/
+├── libldwrapper.so    ← este wrapper
+└── libldreal.so       ← o LLD real (renomeado de "ld.lld")
+```
+
+> **Importante:** o arquivo `ld.lld` original do NDK deve ser **renomeado** para `libldreal.so` — senão o Android não extrai para `nativeLibraryDir/`.
+
+### 2. Carregar a lib no início do app (opcional, mas recomendado)
+
+Para garantir que o Android extraia os `.so` na primeira execução:
+
+```java
+static {
+    try {
+        System.loadLibrary("ldreal");
+        System.loadLibrary("ldwrapper");
+    } catch (Throwable t) {
+        Log.w("App", "Falha ao carregar libs nativas", t);
+    }
+}
+```
+
+### 3. Invocar o linker
+
+#### Java
+
+```java
+import android.content.Context;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+public void invocarLinker(Context ctx, File fonte, File saida) throws IOException {
+    // 1. Localiza os binários em nativeLibraryDir
+    String nativeDir = ctx.getApplicationInfo().nativeLibraryDir;
+    File clang     = new File(nativeDir, "libclang.so");
+    File ldwrapper = new File(nativeDir, "libldwrapper.so");
+
+    // 2. Monta o comando
+    List<String> cmd = new ArrayList<>();
+    cmd.add(clang.getAbsolutePath());
+    cmd.add("-x"); cmd.add("c++");
+    cmd.add("-shared");
+    cmd.add("-fPIC");
+    cmd.add("-O2");
+    cmd.add("-std=c++17");
+    cmd.add("--target=aarch64-linux-android21");
+
+    // ★ Aponta pro wrapper (que passa argv[0]="ld.lld" pro LLD real)
+    cmd.add("-fuse-ld=" + ldwrapper.getAbsolutePath());
+
+    cmd.add("-o"); cmd.add(saida.getAbsolutePath());
+    cmd.add(fonte.getAbsolutePath());
+
+    // 3. Executa com LD_LIBRARY_PATH configurado
+    ProcessBuilder pb = new ProcessBuilder(cmd);
+    pb.redirectErrorStream(true);
+    pb.environment().put("LD_LIBRARY_PATH", nativeDir);
+
+    Process processo = pb.start();
+
+    // 4. Captura a saída
+    try (BufferedReader reader = new BufferedReader(
+            new InputStreamReader(processo.getInputStream()))) {
+        String linha;
+        while ((linha = reader.readLine()) != null) {
+            Log.i("Linker", linha);
+        }
+    }
+
+    int exit = processo.waitFor();
+    Log.i("Linker", "Exit code: " + exit);
+}
+```
+
+#### Kotlin
+
+```kotlin
+import android.content.Context
+import java.io.BufferedReader
+import java.io.File
+import java.io.InputStreamReader
+
+fun invocarLinker(ctx: Context, fonte: File, saida: File) {
+    val nativeDir = ctx.applicationInfo.nativeLibraryDir
+    val clang     = File(nativeDir, "libclang.so")
+    val ldwrapper = File(nativeDir, "libldwrapper.so")
+
+    val cmd = listOf(
+        clang.absolutePath,
+        "-x", "c++",
+        "-shared",
+        "-fPIC",
+        "-O2",
+        "-std=c++17",
+        "--target=aarch64-linux-android21",
+        "-fuse-ld=${ldwrapper.absolutePath}",  // ★ wrapper
+        "-o", saida.absolutePath,
+        fonte.absolutePath
+    )
+
+    val pb = ProcessBuilder(cmd)
+    pb.redirectErrorStream(true)
+    pb.environment()["LD_LIBRARY_PATH"] = nativeDir
+
+    val processo = pb.start()
+
+    BufferedReader(InputStreamReader(processo.inputStream)).use { reader ->
+        reader.forEachLine { Log.i("Linker", it) }
+    }
+
+    val exit = processo.waitFor()
+    Log.i("Linker", "Exit code: $exit")
+}
+```
+
+### 4. Saída esperada
+
+- **Sucesso:** `Exit code: 0` e o arquivo `.so` gerado no caminho especificado
+- **Falha:** `Exit code: 1` com mensagens de erro do LLD no logcat
+
+## Como saber se funcionou
+
+Se você ver o erro:
+
+```
+lld is a generic driver.
+Invoke ld.lld (Unix), ld64.lld (macOS), lld-link (Windows) instead
+```
+
+Significa que o wrapper **não está sendo usado** — o LLD real foi chamado direto sem corrigir o `argv[0]`. Verifique se o caminho passado em `-fuse-ld=` aponta para o **`libldwrapper.so`** (e não para o `libldreal.so`).
+
+## Alternativas
+
+Se você usa **CMake** em vez de `ProcessBuilder`:
+
+```cmake
+set(CMAKE_LINKER "${CMAKE_ANDROID_NDK}/../nativeLibraryDir/libldwrapper.so")
+```
+
+Ou se preferir **linha de comando direta** (via shell):
+
+```bash
+LD_LIBRARY_PATH=/path/to/nativeLibraryDir \
+    /path/to/nativeLibraryDir/libldwrapper.so \
+    --version
+```
+
+## Limitações
+
+- ⚠️ O wrapper assume que `libldreal.so` está **na mesma pasta** que `libldwrapper.so`. Se você mover um sem o outro, ele falha.
+- ⚠️ Definir `LD_LIBRARY_PATH` é **obrigatório** para o LLD achar as libs dele (`libc++_shared.so`, etc).
+- ⚠️ Não funciona como **symlink** — precisa ser uma **cópia real** do arquivo.
