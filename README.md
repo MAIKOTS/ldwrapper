@@ -6,6 +6,16 @@
 
 Um wrapper minimalista que resolve um problema específico do **LLD no Android**: o linker do LLVM detecta em qual modo deve operar pelo `argv[0]`, mas quando ele é empacotado num APK, o arquivo precisa ser renomeado para `lib*.so` — e isso quebra a detecção.
 
+## Por que isso existe
+
+Se você está compilando C/C++ para Android **dentro do próprio app** (sem PC), 
+precisa rodar o `clang` e o `lld` a partir de `nativeLibraryDir/`. Mas o 
+Android só extrai arquivos com nome `lib*.so` — e o LLD depende do nome do 
+arquivo para saber em qual modo operar.
+
+Este wrapper resolve esse conflito.
+##
+
 ## O problema
 
 O [LLD](https://lld.llvm.org/) é o linker do projeto LLVM. Ele é um **driver genérico** que se comporta de forma diferente dependendo do nome pelo qual é invocado:
@@ -31,6 +41,40 @@ Este wrapper:
 3. Executa ele passando `argv[0] = "ld.lld"`
 
 Resultado: o LLD entra em modo Unix normalmente, sem reclamar.
+
+## Como funciona
+
+```
+
+┌──────────────────────────────────────────────────┐
+│  1. ProcessBuilder invoca libldwrapper.so        │
+│     (que está em nativeLibraryDir/)              │
+└─────────────────┬────────────────────────────────┘
+│
+▼
+┌──────────────────────────────────────────────────┐
+│  2. ldwrapper lê /proc/self/exe                  │
+│     → descobre que está em .../lib/arm64/        │
+└─────────────────┬────────────────────────────────┘
+│
+▼
+┌──────────────────────────────────────────────────┐
+│  3. Monta o caminho do alvo:                     │
+│     .../lib/arm64/libldreal.so                   │
+└─────────────────┬────────────────────────────────┘
+│
+▼
+┌──────────────────────────────────────────────────┐
+│  4. execv(alvo, ["ld.lld", ...args])             │
+│     ^^^^^^^^  argv[0] correto para o LLD         │
+└─────────────────┬────────────────────────────────┘
+│
+▼
+┌──────────────────────────────────────────────────┐
+│  5. LLD detecta "ld.lld" → modo Unix ✅          │
+└──────────────────────────────────────────────────┘
+
+```
 
 ## Compilação
 
