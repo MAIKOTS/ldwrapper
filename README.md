@@ -268,3 +268,29 @@ make clean    # limpa
 ```
 
 ---
+
+## Uso rápido (Java)
+
+```java
+String nativeDir = ctx.getApplicationInfo().nativeLibraryDir;
+
+List<String> cmd = Arrays.asList(
+    nativeDir + "/libclang.so",
+    "-shared", "-fPIC", "-O2",
+    "--target=aarch64-linux-android21",
+    "-fuse-ld=" + nativeDir + "/libldwrapper.so",
+    "-o", saida.getAbsolutePath(),
+    fonte.getAbsolutePath()
+);
+
+ProcessBuilder pb = new ProcessBuilder(cmd);
+pb.environment().put("LD_LIBRARY_PATH", nativeDir);
+Process p = pb.start();
+int exit = p.waitFor();
+```
+
+Requisitos:
+
+1. `libldwrapper.so` e `libldreal.so` em `jniLibs/arm64-v8a/`
+2. Renomear `ld.lld` do NDK para `libldreal.so` antes de copiar
+3. Definir `LD_LIBRARY_PATH` para `nativeLibraryDir`
