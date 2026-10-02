@@ -1,5 +1,5 @@
 # ============================================================
-#  Makefile para compilar o ldwrapper
+#  Makefile para compilar o LdWrapper
 # ============================================================
 
 NDK ?= $(HOME)/android-ndk-r24
@@ -9,7 +9,7 @@ CLANG = $(TOOLCHAIN)/bin/aarch64-linux-android21-clang++
 CFLAGS = -fPIC -pie -O2
 LDFLAGS = -Wl,-dynamic-linker,/system/bin/linker64
 
-TARGET = libldwrapper.so
+TARGET = libLdWrapper.so
 SOURCE = main.cpp
 
 all: $(TARGET)
