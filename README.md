@@ -1,6 +1,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Android-green.svg)
 ![Language](https://img.shields.io/badge/language-C%2B%2B-blue.svg)
+https://img.shields.io/badge/license-MIT-blue.svg https://img.shields.io/badge/platform-Android-green.svg https://img.shields.io/badge/language-C%2B%2B-blue.svg
 # ldwrapper
 
 Um wrapper minimalista que resolve um problema específico do **LLD no Android**: o linker do LLVM detecta em qual modo deve operar pelo `argv[0]`, mas quando ele é empacotado num APK, o arquivo precisa ser renomeado para `lib*.so` — e isso quebra a detecção.
