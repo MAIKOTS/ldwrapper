@@ -88,11 +88,18 @@ Ou simplesmente:
 ```
 
 ## Compatibilidade
-
-• ✅ Android 5.0+ (API 21) •
-• ✅ ARM64 (aarch64-linux-android) •
-• ✅ ARM32 (armv7a-linux-androideabi) •
-• ✅ x86, x86_64 •
+```
+• ✅ Android 5.0+ (API 21)
+```
+```
+• ✅ ARM64 (aarch64-linux-android)
+```
+```
+• ✅ ARM32 (armv7a-linux-androideabi)
+```
+```
+• ✅ x86, x86_64
+```
 
 ## Uso rápido (Java)
 
