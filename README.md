@@ -1,13 +1,11 @@
-Claro — aqui está o conteúdo corrigido do README.md para substituir:
-
-```md
+```markdown
 # ldwrapper
 
-Um wrapper minimalista que resolve um problema específico do LLD no Android: o linker do LLVM detecta em qual modo deve operar pelo `argv[0]`, mas quando ele é empacotado num APK, o arquivo precisa ser renomeado para `lib*.so` — e isso quebra a detecção.
+Um wrapper minimalista que resolve um problema específico do **LLD no Android**: o linker do LLVM detecta em qual modo deve operar pelo `argv[0]`, mas quando ele é empacotado num APK, o arquivo precisa ser renomeado para `lib*.so` — e isso quebra a detecção.
 
 ## O problema
 
-O [LLD](https://lld.llvm.org/) é o linker do projeto LLVM. Ele é um driver genérico que se comporta de forma diferente dependendo do nome pelo qual é invocado:
+O [LLD](https://lld.llvm.org/) é o linker do projeto LLVM. Ele é um **driver genérico** que se comporta de forma diferente dependendo do nome pelo qual é invocado:
 
 | `argv[0]` | Modo |
 |---|---|
@@ -16,7 +14,7 @@ O [LLD](https://lld.llvm.org/) é o linker do projeto LLVM. Ele é um driver gen
 | `lld-link` | Windows |
 | `wasm-ld` | WebAssembly |
 
-No Android, para um binário ser extraído do APK para `nativeLibraryDir/`, ele precisa se chamar `lib*.so`. Ou seja:
+No Android, para um binário ser extraído do APK para `nativeLibraryDir/`, ele **precisa** se chamar `lib*.so`. Ou seja:
 
 - `ld.lld` → precisa virar `libldreal.so`
 - Mas aí o LLD reclama: `lld is a generic driver. Invoke ld.lld (Unix)...`
@@ -25,7 +23,7 @@ No Android, para um binário ser extraído do APK para `nativeLibraryDir/`, ele 
 
 Este wrapper:
 
-1. É executado como `libldwrapper.so` (nome válido para Android extrair)
+1. É executado como `libldwrapper.so` (nome válido pro Android extrair)
 2. Localiza o `libldreal.so` na mesma pasta
 3. Executa ele passando `argv[0] = "ld.lld"`
 
@@ -48,10 +46,10 @@ Ou simplesmente:
 ./build.sh
 ```
 
-## Uso
+Uso
 
-1. Coloque `libldwrapper.so` em `jniLibs/arm64-v8a/` do seu projeto
-2. Renomeie o LLD real (`ld.lld`) para `libldreal.so` e coloque na mesma pasta
+1. Coloque libldwrapper.so em jniLibs/arm64-v8a/ do seu projeto
+2. Renomeie o LLD real (ld.lld) para libldreal.so e coloque na mesma pasta
 3. No código Java, invoque:
 
 ```java
@@ -63,32 +61,169 @@ cmd.add("-fuse-ld=" + linker.getAbsolutePath());
 // ... resto dos argumentos
 ```
 
-### Por que não usar `/system/bin/linker64` diretamente?
+Por que não usar /system/bin/linker64 diretamente?
 
-Você pode, mas precisa que o binário alvo tenha `argv[0]` correto — o que exige uma camada extra de manipulação que o linker64 não fornece de forma limpa. Este wrapper faz isso de forma explícita e portável.
+Você pode, mas precisa que o binário alvo tenha argv[0] correto — o que exige uma camada extra de manipulação que o linker64 não fornece de forma limpa. Este wrapper faz isso de forma explícita e portável.
 
-## Flags de debug
+Flags de debug
 
-Defina a variável de ambiente `LDWRAPPER_VERBOSE=1` para ver o que o wrapper está fazendo:
+Defina a variável de ambiente LDWRAPPER_VERBOSE=1 para ver o que o wrapper está fazendo:
 
 ```bash
 LDWRAPPER_VERBOSE=1 ./libldwrapper.so --version
 ```
 
-## Compatibilidade
+Compatibilidade
 
-- ✅ Android 5.0+ (API 21)
-- ✅ ARM64 (`aarch64-linux-android`)
-- ✅ ARM32 (`armv7a-linux-androideabi`)
-- ✅ x86, x86_64
+· ✅ Android 5.0+ (API 21)
+· ✅ ARM64 (aarch64-linux-android)
+· ✅ ARM32 (armv7a-linux-androideabi)
+· ✅ x86, x86_64
 
-## Licença
+Licença
 
-MIT — veja [LICENSE](LICENSE).
+MIT — veja LICENSE.
+
 ```
 
-Se quiser, também posso te mandar uma versão mais “profissional” do README, com:
-- exemplo de estrutura do projeto
-- instruções de instalação mais detalhadas
-- seção “Como funciona internamente”
-- links para uso com CMake/Gradle.
+---
+
+## 3. `LICENSE` (MIT)
+
+```markdown
+MIT License
+
+Copyright (c) 2026 MaikoTS
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+---
+
+4. build.sh
+
+```bash
+#!/bin/bash
+# ============================================================
+#  Compila o libldwrapper.so para Android
+# ============================================================
+
+set -e
+
+# ---------- Configuração ----------
+# Ajuste o caminho do NDK se necessário
+NDK="${ANDROID_NDK_HOME:-$HOME/android-ndk-r24}"
+TOOLCHAIN="$NDK/toolchains/llvm/prebuilt/linux-aarch64"
+CLANG="$TOOLCHAIN/bin/aarch64-linux-android21-clang++"
+
+# ---------- Verificações ----------
+if [ ! -f "$CLANG" ]; then
+    echo "✗ Clang não encontrado em: $CLANG"
+    echo "  Defina ANDROID_NDK_HOME ou ajuste o caminho no script."
+    exit 1
+fi
+
+# ---------- Compilação ----------
+echo "→ Compilando libldwrapper.so..."
+$CLANG \
+    -fPIC -pie -O2 \
+    -Wl,-dynamic-linker,/system/bin/linker64 \
+    -o libldwrapper.so \
+    main.cpp
+
+# ---------- Resultado ----------
+echo ""
+echo "✓ Compilado com sucesso!"
+echo ""
+file libldwrapper.so
+ls -lh libldwrapper.so
+echo ""
+echo "Próximo passo:"
+echo "  cp libldwrapper.so <seu-projeto>/jniLibs/arm64-v8a/"
+```
+
+Depois roda:
+
+```bash
+chmod +x build.sh
+```
+
+---
+
+5. .gitignore
+
+```gitignore
+# Binários compilados
+*.so
+*.o
+*.a
+
+# Arquivos temporários
+*.tmp
+*.swp
+*~
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Sistema
+.DS_Store
+Thumbs.db
+```
+
+---
+
+6. Makefile (opcional, para quem prefere)
+
+```makefile
+# ============================================================
+#  Makefile para compilar o ldwrapper
+# ============================================================
+
+NDK ?= $(HOME)/android-ndk-r24
+TOOLCHAIN = $(NDK)/toolchains/llvm/prebuilt/linux-aarch64
+CLANG = $(TOOLCHAIN)/bin/aarch64-linux-android21-clang++
+
+CFLAGS = -fPIC -pie -O2
+LDFLAGS = -Wl,-dynamic-linker,/system/bin/linker64
+
+TARGET = libldwrapper.so
+SOURCE = main.cpp
+
+all: $(TARGET)
+
+$(TARGET): $(SOURCE)
+	$(CLANG) $(CFLAGS) $(LDFLAGS) -o $@ $<
+
+clean:
+	rm -f $(TARGET)
+
+.PHONY: all clean
+```
+
+Uso:
+
+```bash
+make          # compila
+make clean    # limpa
+```
+
+---
