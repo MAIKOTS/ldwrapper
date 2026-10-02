@@ -1,0 +1,18 @@
+# Binários compilados
+*.so
+*.o
+*.a
+
+# Arquivos temporários
+*.tmp
+*.swp
+*~
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Sistema
+.DS_Store
+Thumbs.db
