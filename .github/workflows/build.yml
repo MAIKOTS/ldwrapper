@@ -1,10 +1,10 @@
-name: Build
+name: Build LdWrapper
 
 on:
   push:
-    branches: [ main ]
+    branches: [ MaikoTS ]
   pull_request:
-    branches: [ main ]
+    branches: [ MaikoTS ]
 
 jobs:
   build:
